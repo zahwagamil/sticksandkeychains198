@@ -136,7 +136,7 @@ a.orderbtn2:hover{filter:brightness(.96)}
       <div class="sec" data-for="topper">
         <h2>Text</h2>
         <div class="field"><label for="name">Name</label><input type="text" id="name" maxlength="28" autocomplete="off"><span class="hint">Type it exactly as it should appear, for example Dr. Sara.</span></div>
-        <div class="field" style="margin-top:12px"><label for="title">Banner above the nameplate</label><input type="text" id="title" maxlength="24" autocomplete="off"><span class="hint">Soft italic lettering on the top edge of the cloud.</span></div>
+        <div class="field" style="margin-top:12px"><label for="title">Text below the portrait</label><input type="text" id="title" maxlength="24" autocomplete="off"><span class="hint">Shown on one line directly below the portrait.</span></div>
         <div class="field" style="margin-top:12px"><div class="qhead"><label for="quote">Quote under the name</label><button type="button" class="chip txt" id="useQuote" aria-pressed="true">Quote on</button></div><input type="text" id="quote" maxlength="70" autocomplete="off"><span class="hint" id="qcount"></span></div>
       </div>
 
@@ -180,10 +180,10 @@ a.orderbtn2:hover{filter:brightness(.96)}
     <section class="prompt panel" aria-label="Prompt">
       <div class="prompt-head">
         <h2>Your prompt</h2>
-        <div class="btns"><button class="primary" id="copy" type="button">Copy prompt</button></div>
+        <div class="btns"><button class="ghost" id="restore" type="button" hidden>Restore original</button> <button class="primary" id="copy" type="button">Copy prompt</button></div>
       </div>
       <div class="status" id="status"></div>
-      <textarea id="out" readonly spellcheck="false"></textarea>
+      <textarea id="out" spellcheck="false"></textarea>
       <p class="note" id="pnote">Attach the photo when you paste it. If any letters come out wrong, generate again and keep the "Spell exactly" line.</p>
     </section>
   </div>
@@ -333,7 +333,7 @@ const DEFAULTS = () => ({
   design:'sticker', who:'girl',
   palette:'pink', main:PALETTES.pink.main, deep:PALETTES.pink.deep, plate:PALETTES.pink.plate, accent:PALETTES.pink.accent,
   /* cake topper */
-  name:'Dr. NAME', useQuote:true, title:'SEMI SENIOR 198', quote:'Future doctor, already shining',
+  name:'Dr. NAME', topperEdit:null, trackName:'', trackTitle:'', useQuote:true, title:'SEMI SENIOR 198', quote:'Future doctor, already shining',
   outfit:{coat:true, steth:true, rosette:true, cap:false},
   els:['ecg','cross','notes','balloons','disco'],
   /* sticker */
@@ -372,6 +372,7 @@ function setStatus(over, msg){
   st.className = over ? 'status warn' : 'status';
   st.innerHTML = over ? `<span><b>Too long to fit.</b> Shorten the text so everything stays inside its shape.</span>` : `<span><b>${msg.head}</b> ${msg.bits.join(', ')}.</span>`;
 }
+const EDITED_MSG = '<span><b>Edited.</b> Name and text changes still update here. Colors, outfit, icons and quote changes apply again after Restore original.</span>';
 function render(){
   const c = palette();
   if (S.design === 'sticker'){
@@ -383,63 +384,125 @@ function render(){
     $('#out').value = buildStickerDetailed(c, f);
   } else {
     const fit = fitText({name:fullName(), quote:quoteText(), title:S.title}, measure, ZONE);
-    lastFit = fit;
-    const bits = [];
-    if (fit.nameSize) bits.push(`name at ${Math.round(fit.nameSize / LIM.nameMax * 100)}% size`);
-    if (quoteText()) bits.push(fit.qLines.length === 2 ? 'quote on two lines' : 'quote on one line');
-    setStatus(fit.overflow, {head:'Fits inside the cloud.', bits});
-    $('#out').value = buildTopperPrompt(c, fit, placement());
+    const gen = buildTopperPrompt(c, fit, placement());
+    if (S.topperEdit == null){ S.trackName = S.name.trim(); S.trackTitle = S.title.trim(); }
+    if (S.topperEdit == null){
+      const bits = [];
+      if (fit.nameSize) bits.push(`name at ${Math.round(fit.nameSize / LIM.nameMax * 100)}% size`);
+      if (quoteText()) bits.push(fit.qLines.length === 2 ? 'quote on two lines' : 'quote on one line');
+      setStatus(fit.overflow, {head:'Fits inside the cloud.', bits});
+    } else {
+      $('#status').className = 'status';
+      $('#status').innerHTML = EDITED_MSG;
+    }
+    $('#out').value = S.topperEdit == null ? gen : S.topperEdit;
   }
   syncControls(c);
   const ta = $('#out'); ta.style.height = 'auto'; ta.style.height = Math.max(260, ta.scrollHeight + 4) + 'px';
 }
 
 /* ---------- prompt ---------- */
+const KID = {
+  girl:   {n:'girl',   s:'She',  o:'her',   p:'Her',   be:'is'},
+  boy:    {n:'boy',    s:'He',   o:'him',   p:'His',   be:'is'},
+  person: {n:'person', s:'They', o:'them',  p:'Their', be:'are'}
+};
+/* detailed wording for the main decorations; other icons use their short description */
+const DETAIL = {
+  ecg:      c => `A large glossy ${c.M} heart with a white ECG heartbeat line.`,
+  cross:    c => `A chunky glossy ${c.M} medical cross.`,
+  notes:    c => `A stack of three ${c.P} and ${c.S} spiral notebooks with ${c.D} details, a small heart on the top notebook and a ${c.S} pencil resting diagonally on top.`,
+  balloons: c => `Two large glossy ${c.M} and ${c.S} balloons with thin strings.`,
+  disco:    c => `A large silver mirrored disco ball${''}.`
+};
+const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1).replace(/\.$/, '') + '.';
 function buildTopperPrompt(c, fit, pl){
   const name = fullName(), q = quoteText(), title = S.title.trim();
-  const words = {girl:['girl','her'], boy:['boy','his'], person:['person','their']}[S.who];
-  const colors = [...new Set([c.M, c.S, c.P, c.D])];
-  const palText = colors.length > 1 ? colors.slice(0, -1).join(', ') + ' and ' + colors[colors.length - 1] : colors[0];
-  const style = `cute glossy ${S.palette === 'pink' ? '"coquette" ' : ''}medical-themed aesthetic in ${palText}, with silver-gray accents`;
+  const k = KID[S.who], P = k.p, o = k.o, s = k.s;
+  const coquette = S.palette === 'pink' ? ' coquette' : '';
+  const colors = [...new Set([c.M, c.S, c.P, 'silver', c.D])];
+  const palText = colors.slice(0, -1).join(', ') + ' and ' + colors[colors.length - 1];
+  const L = [];
+  L.push(`Create an almost exact replica of the attached reference image as a premium glossy 3D medical graduation cake-topper sticker, vertical portrait composition, on a pure white background.`);
 
-  const wear = OUTFIT.filter(x => S.outfit[x.id]).map(x => x.say(c));
-  const wearText = wear.length ? wear.join(', ').replace(/, ([^,]*)$/, wear.length > 1 ? ', and $1' : ', $1') : `${words[1]} own outfit from the photo`;
-  const hair = S.outfit.cap ? '' : `, with ${words[1]} hair fully visible and nothing on the head`;
+  L.push(`**CRITICAL – FACIAL IDENTITY AND EXPRESSION LOCK:**\nUse the young ${k.n}'s original attached photograph as the exact facial and identity reference. ${s} ${k.be} a KID, so keep ${o} clearly a child. ${P} face must remain IDENTICAL to the original photograph.`);
+  L.push(`Do NOT redraw, regenerate, reinterpret, beautify, retouch, reshape or stylize ${o} face.`.replace(` ${o} face`, ` ${P.toLowerCase()} face`));
+  L.push([
+    `Preserve with absolute accuracy:`,
+    `- ${P} exact natural smile, including the position and visibility of ${P.toLowerCase()} teeth.`,
+    `- ${P} exact eyes, eyelids, eyebrows and gaze direction.`,
+    `- ${P} exact nose, lips, cheeks, chin and facial proportions.`,
+    `- ${P} original glasses if ${s.toLowerCase()} wear${s === 'They' ? '' : 's'} any, including their shape, position and transparency.`,
+    `- ${P} natural skin tone, facial texture and distinctive features.`,
+    `- ${P} original hairline, hair color, length, curl pattern, volume and individual recognizable characteristics.`,
+    `- ${P} original facial expression and personality.`,
+    `- ${P} child's age, youthful round face and childlike proportions. Do NOT make ${o} look older, adult or mature, and do not add makeup.`
+  ].join('\n'));
+  L.push(`**Do not make ${P.toLowerCase()} smile wider, change ${P.toLowerCase()} teeth, enlarge ${P.toLowerCase()} eyes, alter ${P.toLowerCase()} cheeks or change the direction of ${P.toLowerCase()} gaze. Do not substitute a similar-looking child.**`);
+  L.push(`The portrait must look like the actual ${k.n} in the supplied photograph, not an AI-generated interpretation of ${o}. Preserve the original face and expression even if other parts of the design need to be adjusted to accommodate the portrait.`);
 
-  const list = l => l.map(e => e.say(c)).join('; ');
-  const lines = [];
-  lines.push(`Create a flat die-cut cake topper / stick-print design, vertical portrait, on a plain pure white background. Flat design only: no stick, no mockup, no table, no wall, no shadows from a scene. Just the printable artwork with a thick white sticker border and a very subtle soft edge shadow.`);
-  lines.push(`Style: ${style}. Soft 3D glossy icons with clean outlines.`);
-  lines.push('Layout, from top to bottom:');
-  lines.push(`- Center: the cut-out photo of the ${words[0]} from the attached reference (keep ${words[1]} face, hair and expression exactly as in the photo${hair}), wearing ${wearText}.`);
-  if (pl.L.length) lines.push(`- Left side, stacked from top to bottom: ${list(pl.L)}. Small ${c.M} and silver four-point sparkles around them.`);
-  if (pl.R.length) lines.push(`- Right side, stacked from top to bottom: ${list(pl.R)}. Small ${c.M} and silver four-point sparkles around them.`);
-  if (title){
-    const tw = Math.round(measure(title, fit.titleSize, 'title') / PLATE.w * 100);
-    lines.push(`- Directly below the photo, centered, overlapping the top edge of the nameplate: the text "${title}" in a soft, rounded ${c.M} italic script font (glossy, with a thin ${c.D} outline and a soft white glow so it stays readable), slightly curved upward, with one tiny sparkle on each side. One line only, about ${tw}% of the nameplate width.`);
+  L.push(`**OVERALL DESIGN:**\nA vertical die-cut sticker with a thick continuous white outline surrounding the entire artwork, a subtle grey edge shadow and a clean white background. Cute, luxurious, glossy 3D Y2K${coquette} medical-graduation aesthetic. ${palText.charAt(0).toUpperCase() + palText.slice(1)}. Puffy glossy graphics, smooth outlines, reflective highlights and layered sticker elements.`);
+
+  const wear = [];
+  if (S.outfit.coat){ wear.push(`A crisp white doctor's lab coat.`); wear.push(`A soft cream knitted sweater underneath.`); }
+  if (S.outfit.steth) wear.push(`A glossy ${c.M} stethoscope around ${P.toLowerCase()} neck.`);
+  if (S.outfit.rosette){
+    wear.push(`A beautiful ${c.M}-and-white scalloped award rosette pinned to the chest.`);
+    wear.push(`A circular white center on the rosette featuring a ${c.D} medical caduceus emblem.`);
+    wear.push(`Two long ${c.M} and white striped ribbon tails hanging from the rosette.`);
   }
-  let plateLine = `- Bottom: a ${c.P} scalloped cloud-shaped nameplate with a ${c.M} border. Inside it, centered, from top to bottom: `;
-  const parts = [];
+  if (S.outfit.cap) wear.push(`A black graduation cap with a long ${c.M} tassel.`);
+  const hair = S.outfit.cap ? '' : ` with ${P.toLowerCase()} full hair visible and nothing on the head`;
+  let center = `**CENTER – ${k.n.toUpperCase()}'S PORTRAIT:**\nPlace a large realistic photographic cut-out of the young ${k.n} (a child) in the center, from approximately the waist/chest upward,${hair || ' with the full hair visible'}.`;
+  center += `\n\nKeep ${P.toLowerCase()} original head position, facial expression and natural appearance unchanged.`;
+  if (wear.length) center += `\n\nDress ${o} in:\n` + wear.map(w => '- ' + w).join('\n') + `\n\nThe clothing and accessories should look realistic and glossy, while the face remains photographic and completely faithful to the reference.`;
+  else center += `\n\nKeep ${P.toLowerCase()} own outfit from the photo.`;
+  L.push(center);
+
+  const side = (list, head) => {
+    if (!list.length) return null;
+    const items = list.map(e => (DETAIL[e.id] ? DETAIL[e.id](c) : capFirst(e.say(c))));
+    const body = items.length > 1 ? items.map((t, i) => `${i + 1}. ${t}`).join('\n') : items[0];
+    return `**${head}:**\n${list.length > 1 ? 'Arrange vertically:\n' : 'Place:\n'}${body}\n\nAdd a few small four-point sparkles in ${c.M} and silver.`;
+  };
+  const left = side(pl.L, 'LEFT-SIDE DECORATIONS'), right = side(pl.R, 'RIGHT-SIDE DECORATIONS');
+  if (left) L.push(left);
+  if (right) L.push(right);
+
+  if (title){
+    L.push(`**TEXT – DIRECTLY BELOW THE PORTRAIT:**\nPlace the exact text:\n\n"${title}"\n\nUse large, bold, italic, glossy ${c.M} bubble lettering with white highlights, a thin white inner outline and a ${c.D} extruded shadow. Keep it on one single line, centered and prominent.`);
+  }
+
+  let plate = `**BOTTOM – NAMEPLATE:**\nCreate a large horizontal ${c.P} scalloped cloud-shaped nameplate with multiple layered outlines in ${c.S}, ${c.M} and ${c.D}. Give it a glossy laminated finish and thick white outer sticker border.`;
   if (name){
-    const nw = Math.round(measure(name, fit.nameSize, 'name') / PLATE.w * 100);
-    parts.push(`the name "${name}" in elegant ${c.D} script lettering (about ${nw}% of the nameplate width)`);
+    plate += `\n\nInside the nameplate, place the exact text:\n\n"${name}"\n\nUse elegant oversized ${c.D} flowing script lettering, centered, with smooth calligraphic curves.`;
+    plate += `\n\nAdd one glossy ${c.M} heart on either side of the name.`;
   }
   if (q){
-    const qw = Math.round(Math.max(...fit.qLines.map(l => measure(l, fit.qSize, 'q'))) / PLATE.w * 100);
-    const lineText = fit.qLines.length === 2 ? `on two lines, line one "${fit.qLines[0]}" and line two "${fit.qLines[1]}"` : `on one line`;
-    parts.push(`the quote "${q}" in smaller soft ${c.D} italic lettering ${lineText} (about ${qw}% of the nameplate width, roughly ${Math.round(fit.qSize / fit.nameSize * 100 || 0)}% of the name's height)`);
+    const lt = fit.qLines.length === 2 ? `on two lines, line one "${fit.qLines[0]}" and line two "${fit.qLines[1]}"` : `on one line`;
+    plate += `\n\nUnderneath ${name ? 'the name' : 'the top of the nameplate'}, place the exact quote "${q}" in smaller soft ${c.D} italic lettering ${lt}, centered.`;
   }
-  parts.push(`a thin decorative swirl line with a small ${c.M} heart`);
-  lines.push(plateLine + parts.join('; then ') + '.');
-  lines.push(`- Text fitting: keep every word fully inside the cloud with a clear margin of at least 10% of the nameplate width from the scalloped edge. Never let letters touch or cross the border; scale the lettering down instead of cropping it.`);
-  lines.push(`- The nameplate is the lowest element. Keep its bottom edge flat and clean so a stick can be attached behind it.`);
-  const no = ['a stick', 'a bow', 'a year or any numbers other than those in the text above', 'extra objects beyond those listed', 'backgrounds or scenery'];
-  if (!S.outfit.cap) no.unshift('a graduation cap or any hat');
-  lines.push(`Do not include: ${no.join(', ')}.`);
-  lines.push(`High resolution, crisp clean edges, print-ready, centered, symmetrical composition.`);
-  const spell = [title, name, q].filter(Boolean).map(t => `"${t}"`);
-  lines.push(`Spell exactly: ${spell.join(', ')}.`);
-  return lines.join('\n\n').replace(/\n\n(- )/g, '\n$1').replace(/Layout, from top to bottom:\n/, 'Layout, from top to bottom:\n');
+  plate += `\n\nUnderneath ${q ? 'the quote' : (name ? 'the name' : 'the top of the nameplate')}, add a thin ${c.D} decorative flourish with a small glossy ${c.M} heart in the center.`;
+  plate += `\n\nKeep every word fully inside the cloud with a clear margin from the scalloped edge. Never let letters touch or cross the border; scale the lettering down instead of cropping it.`;
+  L.push(plate);
+
+  L.push(`**COMPOSITION:**\nKeep the portrait as the dominant central feature. ${left && right ? 'The left-side decorations balance the left; the right-side decorations balance the right.' : 'Keep the decorations balanced around the portrait.'}${title ? ` The ${title} lettering separates the portrait from the large scalloped nameplate.` : ''}\n\nMaintain the same overall proportions, arrangement, scale and visual hierarchy as the reference image.`);
+
+  const strict = [
+    `Facial identity and expression must remain unchanged.`,
+    `Do not generate a different face.`,
+    `Do not age ${o} up. ${s} must clearly look like a kid, exactly as in the photograph.`,
+    `Do not alter the original smile or teeth.`,
+    `Do not change ${P.toLowerCase()} glasses or hair.`
+  ];
+  if (!S.outfit.cap) strict.push(`Do not add a graduation cap or hat.`);
+  strict.push(`Do not add a stick or mockup.`, `Do not introduce extra text or objects.`, `All lettering must be spelled correctly and remain fully visible.`);
+  L.push(`**STRICT REQUIREMENTS:**\n` + strict.map(t => '- ' + t).join('\n'));
+
+  L.push(`High-resolution, realistic photographic portrait, glossy 3D sticker decorations, crisp clean edges, professional print-ready die-cut artwork.`);
+  const exact = [title, name, q].filter(Boolean);
+  if (exact.length) L.push(`**Exact text:**\n` + exact.map(t => '- ' + t).join('\n'));
+  return L.join('\n\n');
 }
 
 /* ---------- sticker: sizing and prompt ---------- */
@@ -563,7 +626,26 @@ function buildControls(){
     render();
   });
   const bind = (id, key) => $('#' + id).addEventListener('input', e => { S[key] = e.target.value; render(); });
-  ['name','title','quote','who','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => bind(k, k));
+  ['quote','who','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => bind(k, k));
+  /* Option 2: name and title also update any hand-edited text */
+  const bindTracked = (id, key, trackKey) => $('#' + id).addEventListener('input', e => {
+    const v = e.target.value, nv = v.trim();
+    if (S.topperEdit != null && nv && S[trackKey]){
+      S.topperEdit = S.topperEdit.split(S[trackKey]).join(nv);
+      S[trackKey] = nv;
+    }
+    S[key] = v; render();
+  });
+  bindTracked('name', 'name', 'trackName'); bindTracked('title', 'title', 'trackTitle');
+  $('#out').addEventListener('input', e => {
+    if (S.design !== 'topper') return;
+    S.topperEdit = e.target.value;
+    $('#restore').hidden = false;
+    $('#status').className = 'status';
+    $('#status').innerHTML = EDITED_MSG;
+    const ta = e.target; ta.style.height = 'auto'; ta.style.height = Math.max(260, ta.scrollHeight + 4) + 'px';
+  });
+  $('#restore').addEventListener('click', () => { S.topperEdit = null; render(); });
   const col = (id, key) => $('#' + id).addEventListener('input', e => { S[key] = e.target.value; S.palette = 'custom'; render(); });
   col('cMain', 'main'); col('cDeep', 'deep'); col('cPlate', 'plate'); col('cAccent', 'accent');
   $('#useQuote').addEventListener('click', () => { S.useQuote = !S.useQuote; render(); });
@@ -598,7 +680,9 @@ function syncControls(c){
   $('#sUseQuote').setAttribute('aria-pressed', String(S.sUseQuote));
   $('#sUseQuote').textContent = S.sUseQuote ? 'Quote on' : 'Quote off';
   $('#sQuote').disabled = !S.sUseQuote;
-  $('#pnote').textContent = (S.design === 'sticker') ? 'Attach two images when you paste it: the example sticker design you want to copy, and the photo of the person. If any letters come out wrong, generate again and keep the "Exact text" list.' : 'Attach the photo when you paste it. If any letters come out wrong, generate again and keep the "Spell exactly" line.';
+  $('#out').readOnly = S.design === 'sticker';
+  $('#restore').hidden = !(S.design === 'topper' && S.topperEdit != null);
+  $('#pnote').textContent = (S.design === 'sticker') ? 'Attach two images when you paste it: the example sticker design you want to copy, and the photo of the person. If any letters come out wrong, generate again and keep the "Exact text" list.' : 'Attach two images when you paste it: the example topper design you want to copy, and the photo of the person. You can edit the prompt above before copying. If any letters come out wrong, generate again and keep the "Exact text" list.';
   $('#sqcount').textContent = S.sUseQuote ? `${S.sQuote.length}/60 characters. It sits on a small label under the ribbon and splits over two lines if needed.` : 'The sticker will end at the ribbon.';
   const full = S.els.length >= MAX_EL;
   document.querySelectorAll('#chips .chip').forEach(b => {
