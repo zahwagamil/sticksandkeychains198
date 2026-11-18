@@ -155,6 +155,9 @@ a.orderbtn2:hover{filter:brightness(.96)}
         <h2>Photo</h2>
         <div class="field" style="max-width:240px;margin-bottom:14px"><label for="who">Who is in the photo</label>
           <select id="who"><option value="girl">Girl</option><option value="boy">Boy</option><option value="person">Person</option></select></div>
+        <div class="field" style="max-width:240px;margin-bottom:14px"><label for="pose">Pose</label>
+          <select id="pose"><option value="original">Keep original pose</option><option value="stand">Standing normally</option><option value="notebook">Holding a notebook</option><option value="peace">Peace sign</option></select>
+          <span class="hint">Hands are always kept natural, with five fingers each.</span></div>
         <div class="chips" id="outfit"></div>
       </div>
 
@@ -333,7 +336,7 @@ const DEFAULTS = () => ({
   design:'sticker', who:'girl',
   palette:'pink', main:PALETTES.pink.main, deep:PALETTES.pink.deep, plate:PALETTES.pink.plate, accent:PALETTES.pink.accent,
   /* cake topper */
-  name:'Dr. NAME', topperEdit:null, trackName:'', trackTitle:'', useQuote:true, title:'SEMI SENIOR 198', quote:'Future doctor, already shining',
+  name:'Dr. NAME', pose:'original', topperEdit:null, trackName:'', trackTitle:'', useQuote:true, title:'SEMI SENIOR 198', quote:'Future doctor, already shining',
   outfit:{coat:true, steth:true, rosette:true, cap:false},
   els:['ecg','cross','notes','balloons','disco'],
   /* sticker */
@@ -372,7 +375,7 @@ function setStatus(over, msg){
   st.className = over ? 'status warn' : 'status';
   st.innerHTML = over ? `<span><b>Too long to fit.</b> Shorten the text so everything stays inside its shape.</span>` : `<span><b>${msg.head}</b> ${msg.bits.join(', ')}.</span>`;
 }
-const EDITED_MSG = '<span><b>Edited.</b> Name and text changes still update here. Colors, outfit, icons and quote changes apply again after Restore original.</span>';
+const EDITED_MSG = '<span><b>Edited.</b> Name and text changes still update here. Colors, outfit, pose, icons and quote changes apply again after Restore original.</span>';
 function render(){
   const c = palette();
   if (S.design === 'sticker'){
@@ -416,6 +419,17 @@ const DETAIL = {
   disco:    c => `A large silver mirrored disco ball${''}.`
 };
 const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1).replace(/\.$/, '') + '.';
+function poseParagraph(c, pl2){
+  const P = pl2.charAt(0).toUpperCase() + pl2.slice(1);
+  const HANDS = `${P} hands must look completely normal and natural: child-sized hands with exactly five fingers each, correct finger length and proportions, natural joints and no extra, missing, fused or bent-backward fingers.`;
+  const POSES = {
+    original: `Keep ${pl2} original pose, head position, facial expression and natural appearance exactly as in the photograph. Do not invent new hands or change the pose; show only what the photo shows.`,
+    stand: `Pose: standing naturally and upright, facing forward with relaxed shoulders and ${pl2} arms resting at ${pl2} sides, so little or no hand is visible. Keep ${pl2} head position, facial expression and natural appearance unchanged. ${HANDS}`,
+    notebook: `Pose: holding a small closed ${c.M} notebook against ${pl2} chest with both hands, held low enough that it does not cover ${pl2} face, the stethoscope or the rosette. Keep ${pl2} head position, facial expression and natural appearance unchanged. The notebook is part of the pose, not an extra decoration. ${HANDS}`,
+    peace: `Pose: giving a classic peace sign (V sign) with one hand raised beside ${pl2} shoulder, palm facing outward, index and middle fingers extended and the other fingers curled, with the other arm relaxed at ${pl2} side. The raised hand must not cover ${pl2} face. Keep ${pl2} head position, facial expression and natural appearance unchanged. ${HANDS}`
+  };
+  return POSES[S.pose || 'original'];
+}
 function buildTopperPrompt(c, fit, pl){
   const name = fullName(), q = quoteText(), title = S.title.trim();
   const k = KID[S.who], P = k.p, o = k.o, s = k.s;
@@ -454,7 +468,7 @@ function buildTopperPrompt(c, fit, pl){
   if (S.outfit.cap) wear.push(`A black graduation cap with a long ${c.M} tassel.`);
   const hair = S.outfit.cap ? '' : ` with ${P.toLowerCase()} full hair visible and nothing on the head`;
   let center = `**CENTER – ${k.n.toUpperCase()}'S PORTRAIT:**\nPlace a large realistic photographic cut-out of the young ${k.n} (a child) in the center, from approximately the waist/chest upward,${hair || ' with the full hair visible'}.`;
-  center += `\n\nKeep ${P.toLowerCase()} original head position, facial expression and natural appearance unchanged.`;
+  center += `\n\n` + poseParagraph(c, P.toLowerCase());
   if (wear.length) center += `\n\nDress ${o} in:\n` + wear.map(w => '- ' + w).join('\n') + `\n\nThe clothing and accessories should look realistic and glossy, while the face remains photographic and completely faithful to the reference.`;
   else center += `\n\nKeep ${P.toLowerCase()} own outfit from the photo.`;
   L.push(center);
@@ -475,12 +489,12 @@ function buildTopperPrompt(c, fit, pl){
 
   let plate = `**BOTTOM – NAMEPLATE:**\nCreate a large horizontal ${c.P} scalloped cloud-shaped nameplate with multiple layered outlines in ${c.S}, ${c.M} and ${c.D}. Give it a glossy laminated finish and thick white outer sticker border.`;
   if (name){
-    plate += `\n\nInside the nameplate, place the exact text:\n\n"${name}"\n\nUse elegant oversized ${c.D} flowing script lettering, centered, with smooth calligraphic curves.`;
+    plate += `\n\nInside the nameplate, place the exact text:\n\n"${name}"\n\nUse elegant oversized solid black flowing script lettering (pure black, not brown), centered, with smooth calligraphic curves.`;
     plate += `\n\nAdd one glossy ${c.M} heart on either side of the name.`;
   }
   if (q){
     const lt = fit.qLines.length === 2 ? `on two lines, line one "${fit.qLines[0]}" and line two "${fit.qLines[1]}"` : `on one line`;
-    plate += `\n\nUnderneath ${name ? 'the name' : 'the top of the nameplate'}, place the exact quote "${q}" in smaller soft ${c.D} italic lettering ${lt}, centered.`;
+    plate += `\n\nUnderneath ${name ? 'the name' : 'the top of the nameplate'}, place the exact quote "${q}" in smaller soft solid black italic lettering (pure black, not brown) ${lt}, centered.`;
   }
   plate += `\n\nUnderneath ${q ? 'the quote' : (name ? 'the name' : 'the top of the nameplate')}, add a thin ${c.D} decorative flourish with a small glossy ${c.M} heart in the center.`;
   plate += `\n\nKeep every word fully inside the cloud with a clear margin from the scalloped edge. Never let letters touch or cross the border; scale the lettering down instead of cropping it.`;
@@ -495,6 +509,7 @@ function buildTopperPrompt(c, fit, pl){
     `Do not alter the original smile or teeth.`,
     `Do not change ${P.toLowerCase()} glasses or hair.`
   ];
+  if (S.pose && S.pose !== 'original') strict.push(`Hands must look normal and natural, with exactly five fingers each.`);
   if (!S.outfit.cap) strict.push(`Do not add a graduation cap or hat.`);
   strict.push(`Do not add a stick or mockup.`, `Do not introduce extra text or objects.`, `All lettering must be spelled correctly and remain fully visible.`);
   L.push(`**STRICT REQUIREMENTS:**\n` + strict.map(t => '- ' + t).join('\n'));
@@ -557,7 +572,7 @@ function buildStickerDetailed(c, f){
     : `Place the portrait directly on the white background, with no rainbow arch.`;
   sec(`CENTER – PORTRAIT${x.arch ? ' AND ARCH' : ''}`,
     `Place a large cut-out photographic portrait of the ${g.n} from the attached reference photo in the center. Preserve ${g.p} exact facial features, any glasses, hair, skin tone and natural expression. ${head}`,
-    dress + extra, arch);
+    dress + extra, poseParagraph(c, g.p), arch);
 
   const bt = x.badge ? U(S.sBadgeTop) : '', bb = x.badge ? U(S.sBadgeBottom) : '';
   if (x.badge){
@@ -626,7 +641,7 @@ function buildControls(){
     render();
   });
   const bind = (id, key) => $('#' + id).addEventListener('input', e => { S[key] = e.target.value; render(); });
-  ['quote','who','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => bind(k, k));
+  ['quote','who','pose','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => bind(k, k));
   /* Option 2: name and title also update any hand-edited text */
   const bindTracked = (id, key, trackKey) => $('#' + id).addEventListener('input', e => {
     const v = e.target.value, nv = v.trim();
@@ -660,7 +675,7 @@ function buildControls(){
 }
 function fillColors(){ $('#cMain').value = S.main; $('#cDeep').value = S.deep; $('#cPlate').value = S.plate; $('#cAccent').value = S.accent; }
 function fillInputs(){
-  ['name','title','quote','who','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => { $('#' + k).value = S[k]; });
+  ['name','title','quote','who','pose','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => { $('#' + k).value = S[k]; });
   fillColors();
 }
 function syncControls(c){
