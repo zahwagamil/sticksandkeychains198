@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>198 Stickers Generator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Dancing+Script:wght@700&family=Nunito:ital,wght@0,400;0,700;0,800;1,700;1,800&display=swap">
+<style>
+/* Layout: controls on the left, the prompt sticky on the right; on phones the prompt follows the controls. */
+:root{
+  --bg:#fff5f8; --surface:#ffffff; --fg:#2b1a23; --muted:#765e6b; --line:#f1d6e1;
+  --accent:#bf1f63; --accent-fg:#ffffff; --field:#ffffff; --tint:#fde8f0; --paper:#ffffff;
+  --ok:#1c7a52; --warn:#a85a00;
+  --font-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --font-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1a1017; --surface:#241720; --fg:#f7e8ef; --muted:#b99aaa; --line:#44293a;
+    --accent:#ff7fb0; --accent-fg:#2a0d1b; --field:#2d1c27; --tint:#3a1f2f; --ok:#5fd6a0; --warn:#ffb866;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1a1017; --surface:#241720; --fg:#f7e8ef; --muted:#b99aaa; --line:#44293a;
+  --accent:#ff7fb0; --accent-fg:#2a0d1b; --field:#2d1c27; --tint:#3a1f2f; --ok:#5fd6a0; --warn:#ffb866;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-body)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin-bottom:22px}
+h1{font:700 clamp(26px,4vw,36px)/1.1 var(--font-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:46ch}
+.grid{display:grid;gap:20px;grid-template-columns:minmax(0,1fr);grid-template-areas:"controls" "prompt"}
+@media (min-width:900px){
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,460px);grid-template-areas:"controls prompt";align-items:start}
+  .prompt{position:sticky;top:16px}
+}
+.controls{grid-area:controls;min-width:0}
+.prompt{grid-area:prompt;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+.sec{padding-block:18px;border-top:1px solid var(--line)}
+.sec.lead{border-top:0;padding-top:0}
+.sec.tail{padding-bottom:0}
+.designs{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:20px}
+.dcard{display:flex;align-items:center;gap:14px;text-align:left;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;cursor:pointer}
+.dcard img{display:block;flex:none;height:230px;width:auto;max-width:46%;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:#fff}
+.dtxt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dtxt b{font:700 17px/1.2 var(--font-display)}
+.dtxt span{font-size:13px;color:var(--muted)}
+.dcard[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--tint)}
+h2{font:600 13px/1.2 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.row.name-row{grid-template-columns:84px minmax(0,1fr)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+label,.lbl{font-weight:700;font-size:13px}
+.hint{font-size:12px;color:var(--muted);font-weight:400}
+input[type=text],select{width:100%;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit;min-width:0}
+input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line);background:var(--field);border-radius:10px;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.sw{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;border:1px solid var(--line);background:var(--field);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.sw i{display:inline-flex}
+.sw i b{width:14px;height:14px;border-radius:50%;margin-left:-4px;border:2px solid var(--field)}
+.sw i b:first-child{margin-left:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid var(--line);background:var(--field);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.chip svg{width:26px;height:26px;flex:none}
+.chip.txt{padding:7px 14px}
+.sw[aria-pressed=true],.chip[aria-pressed=true]{border-color:var(--accent);background:var(--tint);box-shadow:inset 0 0 0 1px var(--accent)}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.count{font-size:12px;color:var(--muted);margin:10px 0 0}
+.status{display:flex;align-items:flex-start;gap:8px;margin:0 2px 12px;font-size:13px;color:var(--muted)}
+.status b{color:var(--ok);font-weight:800}
+.status.warn b{color:var(--warn)}
+.note{font-size:12px;color:var(--muted);margin:6px 2px 0}
+.prompt-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.prompt-head h2{margin:0}
+.btns{display:flex;gap:8px}
+button.primary,button.ghost{font:inherit;font-weight:800;border-radius:10px;padding:9px 16px;cursor:pointer;border:1px solid var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-fg)}
+button.ghost{background:transparent;color:var(--accent)}
+textarea{width:100%;min-height:260px;resize:vertical;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:12px;padding:14px;font:13.5px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.order{margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px}
+.order h2{margin:0 0 4px}
+.order p{margin:0;color:var(--muted);max-width:52ch}
+a.orderbtn{display:inline-block;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px;text-decoration:none;padding:13px 26px;border-radius:12px;border:1px solid var(--accent)}
+a.orderbtn:hover{filter:brightness(1.06)}
+.orderbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;background:var(--accent);color:var(--accent-fg);border-radius:14px;padding:14px 18px;margin-bottom:20px}
+.orderbar div{display:flex;flex-direction:column;min-width:0}
+.orderbar b{font:700 18px/1.2 var(--font-display)}
+.orderbar span{font-size:14px;opacity:.92}
+a.orderbtn2{display:inline-block;background:var(--accent-fg);color:var(--accent);font-weight:800;font-size:16px;text-decoration:none;padding:11px 22px;border-radius:10px}
+a.orderbtn2:hover{filter:brightness(.96)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>198 Stickers Generator</h1>
+    <p>Pick a design, type your text, choose colors, then copy the prompt for your image maker. Long text is sized to fit its ribbon, badge or cloud.</p>
+  </header>
+
+  <section class="orderbar" aria-label="Order your sticker">
+    <div><b>Ready to order?</b><span>Design your sticker below, then fill in the order form.</span></div>
+    <a class="orderbtn2" href="https://docs.google.com/forms/d/e/1FAIpQLSeLLhPorTFnWdtuQtxl2Nh-aijC-7zAqg6yWpAbKMXINZH1WA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer">Order your sticker</a>
+  </section>
+
+  <div class="designs" role="group" aria-label="Choose a design">
+    <button type="button" class="dcard" data-d="sticker" aria-pressed="true"><span class="dtxt"><b>Option 1</b><span>Batch text, rainbow arch, badge and a big bubble name</span></span></button>
+    <button type="button" class="dcard" data-d="topper" aria-pressed="false"><span class="dtxt"><b>Option 2</b><span>Photo, icons and a cloud nameplate</span></span></button>
+  </div>
+
+  <div class="grid">
+    <section class="controls panel" aria-label="Customize">
+      <div class="sec" data-for="sticker">
+        <h2>Text</h2>
+        <div class="row">
+          <div class="field"><label for="sBatch">Top text</label><input type="text" id="sBatch" maxlength="16" autocomplete="off"><span class="hint">Two words stack on two lines.</span></div>
+          <div class="field"><label for="sName">Name</label><input type="text" id="sName" maxlength="14" autocomplete="off"><span class="hint">Shown in capitals.</span></div>
+        </div>
+        <div class="field" style="margin-top:12px"><label for="sBanner">Ribbon text</label><input type="text" id="sBanner" maxlength="18" autocomplete="off"></div>
+        <div class="field" style="margin-top:12px"><div class="qhead"><label for="sQuote">Quote under the ribbon</label><button type="button" class="chip txt" id="sUseQuote" aria-pressed="true">Quote on</button></div><input type="text" id="sQuote" maxlength="60" autocomplete="off"><span class="hint" id="sqcount"></span></div>
+      </div>
+
+      <div class="sec" data-for="topper">
+        <h2>Text</h2>
+        <div class="field"><label for="name">Name</label><input type="text" id="name" maxlength="28" autocomplete="off"><span class="hint">Type it exactly as it should appear, for example Dr. Sara.</span></div>
+        <div class="field" style="margin-top:12px"><label for="title">Text below the portrait</label><input type="text" id="title" maxlength="24" autocomplete="off"><span class="hint">Shown on one line directly below the portrait.</span></div>
+        <div class="field" style="margin-top:12px"><div class="qhead"><label for="quote">Quote under the name</label><button type="button" class="chip txt" id="useQuote" aria-pressed="true">Quote on</button></div><input type="text" id="quote" maxlength="70" autocomplete="off"><span class="hint" id="qcount"></span></div>
+      </div>
+
+      <div class="sec">
+        <h2>Colors</h2>
+        <div class="swatches" id="swatches"></div>
+        <div class="row">
+          <div class="field"><label for="cMain">Main color</label><input type="color" id="cMain"></div>
+          <div class="field"><label for="cDeep">Text and outlines</label><input type="color" id="cDeep"></div>
+          <div class="field" data-for="topper"><label for="cPlate">Nameplate</label><input type="color" id="cPlate"></div>
+          <div class="field" data-for="sticker"><label for="cAccent">Ribbon and star</label><input type="color" id="cAccent"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Photo</h2>
+        <div class="field" style="max-width:240px;margin-bottom:14px"><label for="who">Who is in the photo</label>
+          <select id="who"><option value="girl">Girl</option><option value="boy">Boy</option><option value="person">Person</option></select></div>
+        <div class="field" style="max-width:240px;margin-bottom:14px"><label for="pose">Pose</label>
+          <select id="pose"><option value="original">Keep original pose</option><option value="stand">Standing normally</option><option value="notebook">Holding a notebook</option><option value="peace">Peace sign</option><option value="pocket">Hands in coat pockets</option></select>
+          <span class="hint">Hands are always kept natural, with five fingers each.</span></div>
+        <div class="chips" id="outfit"></div>
+      </div>
+
+      <div class="sec" data-for="sticker">
+        <h2>Sticker extras</h2>
+        <div class="chips" id="sx"></div>
+        <div class="row" style="margin-top:14px">
+          <div class="field"><label for="sBadgeTop">Badge text, top curve</label><input type="text" id="sBadgeTop" maxlength="18" autocomplete="off"></div>
+          <div class="field"><label for="sBadgeBottom">Badge text, bottom curve</label><input type="text" id="sBadgeBottom" maxlength="28" autocomplete="off"></div>
+        </div>
+      </div>
+
+      <div class="sec" data-for="topper">
+        <h2>Icons around the photo</h2>
+        <div class="chips" id="chips"></div>
+        <p class="count" id="elCount"></p>
+      </div>
+
+      <div class="sec"><button class="ghost" id="reset" type="button">Reset this design</button></div>
+    </section>
+
+
+    <section class="prompt panel" aria-label="Prompt">
+      <div class="prompt-head">
+        <h2>Your prompt</h2>
+        <div class="btns"><button class="ghost" id="restore" type="button" hidden>Restore original</button> <button class="primary" id="copy" type="button">Copy prompt</button></div>
+      </div>
+      <div class="status" id="status"></div>
+      <textarea id="out" spellcheck="false"></textarea>
+      <p class="note" id="pnote">Attach the photo when you paste it. If any letters come out wrong, generate again and keep the "Spell exactly" line.</p>
+    </section>
+  </div>
+  <section class="order panel" aria-label="Order your sticker">
+    <div>
+      <h2>Order your sticker</h2>
+      <p>Happy with your design? Copy the prompt, make your image, then fill in the order form.</p>
+    </div>
+    <a class="orderbtn" href="https://docs.google.com/forms/d/e/1FAIpQLSeLLhPorTFnWdtuQtxl2Nh-aijC-7zAqg6yWpAbKMXINZH1WA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer">Order your sticker</a>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- colors ---------- */
+const PALETTES = {
+  pink:  {label:'Coquette pink', main:'#ee5a9a', deep:'#9c1e52', plate:'#fff0e6', accent:'#ffe08a'},
+  lilac: {label:'Lilac dream',   main:'#9b7cf0', deep:'#4a2a8a', plate:'#f6f0ff', accent:'#ffe08a'},
+  mint:  {label:'Fresh mint',    main:'#2fbf9b', deep:'#0e5a49', plate:'#eefaf5', accent:'#ffe08a'},
+  sky:   {label:'Baby blue',     main:'#4fa3ee', deep:'#1a4784', plate:'#eef6ff', accent:'#ffe08a'},
+  peach: {label:'Peach sunset',  main:'#ff8460', deep:'#8a3420', plate:'#fff2e8', accent:'#ffe08a'},
+  ruby:  {label:'Ruby and gold', main:'#d12f4c', deep:'#5e0d20', plate:'#fff3d6', accent:'#f2c14e'}
+};
+const NAMED = [['hot pink','#ee4d97'],['bubblegum pink','#ff9ec8'],['baby pink','#ffd1e3'],['rose','#e0457b'],['burgundy','#7a1a3c'],['deep burgundy','#5a1230'],['red','#d12f3a'],['coral','#ff7f6e'],['peach','#ffb08a'],['orange','#ff9a3c'],['butter yellow','#ffe27a'],['gold','#e2b33e'],['mint green','#7fe0c0'],['emerald green','#1fa97a'],['forest green','#1d5c43'],['teal','#1d9aa0'],['baby blue','#9fd0ff'],['sky blue','#4fa3ee'],['royal blue','#2a56c6'],['navy','#1a2f6b'],['lavender','#c9b6ff'],['lilac','#9b7cf0'],['purple','#6a3fb5'],['plum','#5a2a6a'],['cream','#fff1e0'],['ivory','#fffaf0'],['white','#ffffff'],['silver-gray','#b9bcc8'],['charcoal','#33323a'],['black','#15141a'],['brown','#7a4a32'],['sand','#e8d3b5']];
+const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16));
+const hex = a => '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const mix = (a, b, t) => { const x = rgb(a), y = rgb(b); return hex(x.map((v, i) => v + (y[i] - v) * t)); };
+function colorName(h){
+  const c = rgb(h); let best = NAMED[0][0], bd = 1e9;
+  for (const [n, v] of NAMED){ const d = rgb(v).reduce((s, x, i) => s + (x - c[i]) ** 2, 0); if (d < bd){ bd = d; best = n; } }
+  return best;
+}
+
+/* ---------- text fitting (pure; measure(text, size, kind) gives a width) ---------- */
+/*FIT-START*/
+const LIM = {nameMax:72, nameMin:26, qMax:26, qMin:14, titleMax:46, titleMin:22};
+function balanceTwo(words, size, measure){
+  let best = null;
+  for (let i = 1; i < words.length; i++){
+    const a = words.slice(0, i).join(' '), b = words.slice(i).join(' ');
+    const w = Math.max(measure(a, size, 'q'), measure(b, size, 'q'));
+    if (!best || w < best.w) best = {w, lines:[a, b]};
+  }
+  return best;
+}
+function layoutQuote(q, size, maxW, measure){
+  if (measure(q, size, 'q') <= maxW) return [q];
+  const words = q.split(/\s+/);
+  if (words.length < 2) return null;
+  const b = balanceTwo(words, size, measure);
+  return b && b.w <= maxW ? b.lines : null;
+}
+function fitText(o, measure, zone){
+  const name = o.name.trim(), q = o.quote.trim(), title = o.title.trim();
+  const out = {nameSize:0, qSize:0, qLines:[], titleSize:0, overflow:false, total:0};
+  if (title){
+    let s = LIM.titleMax;
+    while (s > LIM.titleMin && measure(title, s, 'title') > zone.titleW) s--;
+    if (measure(title, s, 'title') > zone.titleW) out.overflow = true;
+    out.titleSize = s;
+  }
+  let ns = 0;
+  if (name){
+    ns = LIM.nameMax;
+    while (ns > LIM.nameMin && measure(name, ns, 'name') > zone.w) ns--;
+    if (measure(name, ns, 'name') > zone.w) out.overflow = true;
+  }
+  let qs = 0, lines = [];
+  if (q){
+    for (qs = LIM.qMax; qs >= LIM.qMin; qs--){
+      lines = layoutQuote(q, qs, zone.w, measure);
+      if (lines) break;
+    }
+    if (!lines){ qs = LIM.qMin; lines = [q]; out.overflow = true; }
+  }
+  const GAP = 8, LH = 1.3, NH = 1.05;
+  const total = () => (ns ? ns * NH : 0) + (q && ns ? GAP : 0) + (q ? lines.length * qs * LH : 0);
+  while (total() > zone.h && ns > LIM.nameMin) ns--;
+  while (total() > zone.h && q && qs > LIM.qMin){
+    qs--;
+    const l = layoutQuote(q, qs, zone.w, measure);
+    if (l) lines = l;
+  }
+  if (total() > zone.h) out.overflow = true;
+  out.nameSize = ns; out.qSize = qs; out.qLines = lines; out.total = total();
+  return out;
+}
+/*FIT-END*/
+
+const cv = document.createElement('canvas').getContext('2d');
+const TITLE_LS = 1;
+const FONTS = {
+  name:  s => `700 ${s}px "Dancing Script", cursive`,
+  q:     s => `italic 700 ${s}px Nunito, sans-serif`,
+  title: s => `italic 800 ${s}px Nunito, sans-serif`
+};
+function measure(text, size, kind){
+  cv.font = FONTS[kind](size);
+  let w = cv.measureText(text).width;
+  if (kind === 'title') w += text.length * TITLE_LS;
+  return w;
+}
+
+/* ---------- icon glyphs (100 x 100 boxes) ---------- */
+const sp = (cx, cy, r) => `M${cx} ${cy - r}Q${cx} ${cy} ${cx + r} ${cy}Q${cx} ${cy} ${cx} ${cy + r}Q${cx} ${cy} ${cx - r} ${cy}Q${cx} ${cy} ${cx} ${cy - r}Z`;
+const hero = (x, y, k, cape, suit, d) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M-12 -6Q-24 20-20 36L20 36Q22 18 12 -6Z" fill="${cape}" stroke="${d}" stroke-width="3" stroke-linejoin="round"/><rect x="-8" y="18" width="7" height="14" rx="3" fill="${d}"/><rect x="1" y="18" width="7" height="14" rx="3" fill="${d}"/><rect x="-10" y="-6" width="20" height="26" rx="8" fill="${suit}" stroke="${d}" stroke-width="3"/><path d="M-2 0H2V4H6V8H2V12H-2V8H-6V4H-2Z" fill="#fff"/><circle cx="0" cy="-22" r="17" fill="#ffd9c2" stroke="${d}" stroke-width="3"/><rect x="-15" y="-27" width="30" height="10" rx="5" fill="${d}"/><circle cx="-6" cy="-22" r="2.8" fill="#fff"/><circle cx="6" cy="-22" r="2.8" fill="#fff"/><path d="M-5 -11Q0 -7 5 -11" fill="none" stroke="${d}" stroke-width="2.4" stroke-linecap="round"/></g>`;
+const GLYPHS = {
+  ecg: c => `<path d="M50 90C16 66 6 44 13 27C20 11 42 11 50 28C58 11 80 11 87 27C94 44 84 66 50 90Z" fill="${c.m}" stroke="${c.d}" stroke-width="3" stroke-linejoin="round"/><path d="M20 50H37L43 38L52 64L58 46H80" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="29" cy="28" rx="7" ry="4" fill="#fff" opacity=".55" transform="rotate(-30 29 28)"/>`,
+  cross: c => `<path d="M38 10H62V38H90V62H62V90H38V62H10V38H38Z" fill="${c.m}" stroke="${c.d}" stroke-width="3" stroke-linejoin="round"/><rect x="42" y="14" width="6" height="22" rx="3" fill="#fff" opacity=".5"/>`,
+  notes: c => `<rect x="12" y="64" width="76" height="24" rx="5" fill="${c.m}" stroke="${c.d}" stroke-width="3"/><rect x="12" y="64" width="12" height="24" rx="5" fill="${c.d}" opacity=".35"/><rect x="18" y="41" width="68" height="23" rx="5" fill="${c.s}" stroke="${c.d}" stroke-width="3"/><rect x="18" y="41" width="12" height="23" rx="5" fill="${c.d}" opacity=".3"/><rect x="10" y="19" width="72" height="22" rx="5" fill="${c.p}" stroke="${c.d}" stroke-width="3"/><path d="M52 36C44 30 44 24 48 23C50 22.5 52 24 52 26C52 24 54 22.5 56 23C60 24 60 30 52 36Z" fill="${c.m}"/><rect x="22" y="9" width="58" height="7" rx="3.5" fill="#ffd166" stroke="${c.d}" stroke-width="2" transform="rotate(-8 51 12)"/>`,
+  balloons: c => `<path d="M34 66C34 80 46 84 50 96" stroke="${c.d}" fill="none" stroke-width="2"/><path d="M66 70C66 82 55 86 50 96" stroke="${c.d}" fill="none" stroke-width="2"/><ellipse cx="34" cy="34" rx="23" ry="29" fill="${c.s}" stroke="${c.d}" stroke-width="3"/><ellipse cx="66" cy="42" rx="21" ry="27" fill="${c.m}" stroke="${c.d}" stroke-width="3"/><path d="M30 63l4 6 4-6z" fill="${c.d}"/><path d="M62 67l4 6 4-6z" fill="${c.d}"/><ellipse cx="26" cy="24" rx="5" ry="9" fill="#fff" opacity=".6" transform="rotate(20 26 24)"/>`,
+  disco: c => `<path d="M50 2V16" stroke="#8b8e9c" stroke-width="3"/><circle cx="50" cy="56" r="36" fill="#d5d7e0" stroke="#6b6e7c" stroke-width="3"/><g stroke="#8b8e9c" stroke-width="1.6" fill="none"><path d="M16 46H84M14 62H86M22 32H78M24 78H76M50 20V92"/><ellipse cx="50" cy="56" rx="14" ry="36"/><ellipse cx="50" cy="56" rx="28" ry="36"/></g><rect x="30" y="38" width="8" height="8" fill="#fff" opacity=".85"/><rect x="58" y="64" width="8" height="8" fill="#fff" opacity=".7"/>`,
+  books: c => `<rect x="10" y="68" width="80" height="20" rx="4" fill="${c.m}" stroke="${c.d}" stroke-width="3"/><rect x="18" y="46" width="66" height="22" rx="4" fill="${c.s}" stroke="${c.d}" stroke-width="3"/><rect x="12" y="24" width="70" height="22" rx="4" fill="${c.p}" stroke="${c.d}" stroke-width="3"/><path d="M22 78H80M26 57H76M20 35H74" stroke="${c.d}" stroke-width="2" opacity=".55"/>`,
+  coffee: c => `<path d="M20 38H72V62C72 76 62 84 46 84C30 84 20 76 20 62Z" fill="${c.s}" stroke="${c.d}" stroke-width="3" stroke-linejoin="round"/><path d="M72 44H80C90 44 90 64 78 64H72" fill="none" stroke="${c.d}" stroke-width="4"/><ellipse cx="46" cy="88" rx="34" ry="5" fill="${c.m}" stroke="${c.d}" stroke-width="2"/><path d="M34 28C30 22 38 18 34 10M50 28C46 22 54 18 50 10" stroke="${c.d}" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/><path d="M46 70C36 62 38 54 42 53C44 52.5 46 54 46 56C46 54 48 52.5 50 53C54 54 56 62 46 70Z" fill="${c.m}"/>`,
+  flowers: c => `<path d="M50 62V94" stroke="#4e9b6e" stroke-width="4"/><ellipse cx="63" cy="82" rx="11" ry="5" fill="#7fcf9f" transform="rotate(-30 63 82)"/>${[0,72,144,216,288].map(a => `<ellipse cx="50" cy="26" rx="11" ry="16" fill="${c.s}" stroke="${c.d}" stroke-width="2.5" transform="rotate(${a} 50 46)"/>`).join('')}<circle cx="50" cy="46" r="10" fill="#ffd166" stroke="${c.d}" stroke-width="2.5"/>`,
+  butterflies: c => `<ellipse cx="33" cy="36" rx="24" ry="17" fill="${c.m}" stroke="${c.d}" stroke-width="2.5" transform="rotate(-28 33 36)"/><ellipse cx="67" cy="36" rx="24" ry="17" fill="${c.m}" stroke="${c.d}" stroke-width="2.5" transform="rotate(28 67 36)"/><ellipse cx="36" cy="65" rx="15" ry="11" fill="${c.s}" stroke="${c.d}" stroke-width="2.5" transform="rotate(25 36 65)"/><ellipse cx="64" cy="65" rx="15" ry="11" fill="${c.s}" stroke="${c.d}" stroke-width="2.5" transform="rotate(-25 64 65)"/><rect x="46.5" y="24" width="7" height="50" rx="3.5" fill="${c.d}"/><path d="M48 26C44 14 38 10 34 10M52 26C56 14 62 10 66 10" stroke="${c.d}" fill="none" stroke-width="2.5" stroke-linecap="round"/>`,
+  microscope: c => `<rect x="22" y="82" width="56" height="8" rx="3" fill="${c.d}"/><path d="M58 80C86 74 86 40 62 28" fill="none" stroke="${c.d}" stroke-width="8" stroke-linecap="round"/><rect x="34" y="8" width="16" height="46" rx="4" fill="${c.m}" stroke="${c.d}" stroke-width="3" transform="rotate(-20 42 31)"/><rect x="24" y="64" width="36" height="6" rx="2" fill="${c.s}" stroke="${c.d}" stroke-width="2"/>`,
+  heroes: c => `${hero(70, 64, 0.9, c.s, c.m, c.d)}${hero(30, 60, 1, c.m, c.s, c.d)}`,
+  stars: c => `<path d="${sp(32, 32, 24)}" fill="${c.m}" stroke="${c.d}" stroke-width="2.5" stroke-linejoin="round"/><path d="${sp(68, 60, 26)}" fill="${c.s}" stroke="${c.d}" stroke-width="2.5" stroke-linejoin="round"/><path d="${sp(34, 82, 14)}" fill="${c.m}" stroke="${c.d}" stroke-width="2.5" stroke-linejoin="round"/>`
+};
+const ELS = [
+  {id:'ecg',         label:'Heartbeat heart', side:'L', say:c => `a glossy ${c.M} heart with a white heartbeat (ECG) line`},
+  {id:'cross',       label:'Medical cross',   side:'L', say:c => `a glossy ${c.M} medical cross`},
+  {id:'notes',       label:'Notebooks',       side:'L', say:c => `a neat stack of two or three glossy ${c.M} and ${c.P} notebooks with ${c.D} spines and a small heart on the top cover, with a pencil resting on top`},
+  {id:'balloons',    label:'Balloons',        side:'R', say:c => `two glossy ${c.M} and ${c.S} balloons with strings`},
+  {id:'disco',       label:'Disco ball',      side:'R', say:c => `a silver mirrored disco ball`},
+  {id:'books',       label:'Textbooks',       side:'L', say:c => `a stack of three hardcover medical textbooks in ${c.M}, ${c.S} and ${c.P}`},
+  {id:'coffee',      label:'Coffee cup',      side:'R', say:c => `a cute ${c.S} coffee cup with a small heart and a little steam`},
+  {id:'flowers',     label:'Flower',          side:'L', say:c => `a delicate ${c.S} flower with a golden center and a small green leaf`},
+  {id:'butterflies', label:'Butterflies',     side:'R', say:c => `a pair of glossy ${c.M} and ${c.S} butterflies`},
+  {id:'microscope',  label:'Microscope',      side:'R', say:c => `a glossy ${c.M} microscope`},
+  {id:'heroes',      label:'Mini superheroes', side:'R', say:c => `two tiny, colorful, original chibi superheroes in ${c.M} and ${c.S} capes and masks, each with a small medical cross on the chest (original characters, not based on any existing franchise)`},
+  {id:'stars',       label:'Sparkles',        side:'L', say:c => `a cluster of three shiny four-point sparkle stars`}
+];
+const MAX_EL = 8, PER_SIDE = 4;
+const OUTFIT = [
+  {id:'coat',    label:'Lab coat',          say:(c, d) => `a white lab coat`},
+  {id:'steth',   label:'Stethoscope',       say:(c, d) => `a ${c.M} stethoscope around the neck`},
+  {id:'rosette', label:'Rosette ribbon',    say:(c, d) => d === 'sticker' ? `a ${c.A} award rosette ribbon with a laurel wreath emblem pinned on the chest` : `a ${c.M}-and-white rosette ribbon with a caduceus emblem pinned on the coat`},
+  {id:'cap',     label:'Graduation cap',    say:(c, d) => `a black graduation cap with a long ${c.M} tassel`}
+];
+
+/* ---------- state ---------- */
+const DEFAULTS = () => ({
+  design:'sticker', who:'girl',
+  palette:'pink', main:PALETTES.pink.main, deep:PALETTES.pink.deep, plate:PALETTES.pink.plate, accent:PALETTES.pink.accent,
+  /* cake topper */
+  name:'Dr. NAME', pose:'original', topperEdit:null, trackColors:null, trackCoq:true, trackName:'', trackTitle:'', useQuote:true, title:'SEMI SENIOR 198', quote:'Future doctor, already shining',
+  outfit:{coat:true, steth:true, rosette:true, cap:false},
+  els:['ecg','cross','notes','balloons','disco'],
+  /* sticker */
+  sName:'NAME', sBatch:'BATCH 198', sBanner:'SEMI SENIOR', sUseQuote:true, sQuote:'Future doctor, already shining',
+  sBadgeTop:'You did great!', sBadgeBottom:'Enjoy your stethoscope',
+  sOutfit:{coat:true, steth:false, rosette:true, cap:false},
+  sx:{ring:true, arch:true, badge:true, star:true, sparkles:true}
+});
+let S = DEFAULTS();
+
+const PLATE = {x:60, y:548, w:480, h:200, r:58};
+const ZONE = {x:105, y:584, w:390, h:140, titleW:400};
+
+function palette(){
+  const m = S.main, d = S.deep, p = S.plate, a = S.accent, s = mix(m, '#ffffff', 0.62);
+  return {m, d, p, s, a, TX:d, T:colorName(d), M:colorName(m), D:colorName(d), P:colorName(p), S:colorName(s), A:colorName(a)};
+}
+function placement(){
+  const L = [], R = [];
+  for (const e of ELS){
+    if (!S.els.includes(e.id)) continue;
+    let side = e.side;
+    const cnt = side === 'L' ? L.length : R.length;
+    if (cnt >= PER_SIDE) side = side === 'L' ? 'R' : 'L';
+    (side === 'L' ? L : R).push(e);
+  }
+  return {L, R};
+}
+/* ---------- render ---------- */
+let lastFit = null;
+function fullName(){ return S.name.trim(); }
+function quoteText(){ return S.useQuote ? S.quote.trim() : ''; }
+
+function setStatus(over, msg){
+  const st = $('#status');
+  st.className = over ? 'status warn' : 'status';
+  st.innerHTML = over ? `<span><b>Too long to fit.</b> Shorten the text so everything stays inside its shape.</span>` : `<span><b>${msg.head}</b> ${msg.bits.join(', ')}.</span>`;
+}
+const EDITED_MSG = '<span><b>Edited.</b> Name, banner and color changes still update here. Outfit, pose, icons and quote changes apply again after Restore original.</span>';
+function render(){
+  const c = palette();
+  if (S.design === 'sticker'){
+    const f = stickerFit();
+    const bits = [];
+    if (f.name) bits.push(`name spans about ${f.nameW}% of the width`);
+    if (f.qLines.length) bits.push(f.qLines.length === 2 ? 'quote on two lines' : 'quote on one line');
+    setStatus(f.overflow, {head:'Fits the sticker.', bits});
+    $('#out').value = buildStickerDetailed(c, f);
+  } else {
+    const fit = fitText({name:fullName(), quote:quoteText(), title:S.title}, measure, ZONE);
+    const gen = buildTopperPrompt(c, fit, placement());
+    const cs = topperColors(c);
+    if (S.topperEdit == null){ S.trackName = S.name.trim(); S.trackTitle = S.title.trim(); }
+    else {
+      S.topperEdit = syncColors(S.topperEdit, S.trackColors, cs);
+      const coq = S.palette === 'pink';
+      if (coq !== S.trackCoq){
+        const a = '3D Y2K medical-graduation', b = '3D Y2K coquette medical-graduation';
+        S.topperEdit = coq ? S.topperEdit.split(a).join(b) : S.topperEdit.split(b).join(a);
+      }
+    }
+    S.trackColors = cs; S.trackCoq = S.palette === 'pink';
+    if (S.topperEdit == null){
+      const bits = [];
+      if (fit.nameSize) bits.push(`name at ${Math.round(fit.nameSize / LIM.nameMax * 100)}% size`);
+      if (quoteText()) bits.push(fit.qLines.length === 2 ? 'quote on two lines' : 'quote on one line');
+      setStatus(fit.overflow, {head:'Fits inside the cloud.', bits});
+    } else {
+      $('#status').className = 'status';
+      $('#status').innerHTML = EDITED_MSG;
+    }
+    $('#out').value = S.topperEdit == null ? gen : S.topperEdit;
+  }
+  syncControls(c);
+  const ta = $('#out'); ta.style.height = 'auto'; ta.style.height = Math.max(260, ta.scrollHeight + 4) + 'px';
+}
+
+/* ---------- prompt ---------- */
+const KID = {
+  girl:   {n:'girl',   s:'She',  o:'her',   p:'Her',   be:'is'},
+  boy:    {n:'boy',    s:'He',   o:'him',   p:'His',   be:'is'},
+  person: {n:'person', s:'They', o:'them',  p:'Their', be:'are'}
+};
+/* detailed wording for the main decorations; other icons use their short description */
+const DETAIL = {
+  ecg:      c => `A large glossy ${c.M} heart with a white ECG heartbeat line.`,
+  cross:    c => `A chunky glossy ${c.M} medical cross.`,
+  notes:    c => `A stack of three ${c.P} and ${c.S} spiral notebooks with ${c.D} details, a small heart on the top notebook and a ${c.S} pencil resting diagonally on top.`,
+  balloons: c => `Two large glossy ${c.M} and ${c.S} balloons with thin strings.`,
+  disco:    c => `A large silver mirrored disco ball${''}.`
+};
+const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1).replace(/\.$/, '') + '.';
+function poseParagraph(c, pl2){
+  const P = pl2.charAt(0).toUpperCase() + pl2.slice(1);
+  const HANDS = `${P} hands must look completely normal and natural: child-sized hands with exactly five fingers each, correct finger length and proportions, natural joints and no extra, missing, fused or bent-backward fingers.`;
+  const POSES = {
+    original: `Keep ${pl2} original pose, head position, facial expression and natural appearance exactly as in the photograph. Do not invent new hands or change the pose; show only what the photo shows.`,
+    stand: `Pose: standing naturally and upright, facing forward with relaxed shoulders and ${pl2} arms resting at ${pl2} sides, so little or no hand is visible. Keep ${pl2} head position, facial expression and natural appearance unchanged. ${HANDS}`,
+    notebook: `Pose: holding a small closed ${c.M} notebook against ${pl2} chest with both hands, held low enough that it does not cover ${pl2} face, the stethoscope or the rosette. Keep ${pl2} head position, facial expression and natural appearance unchanged. The notebook is part of the pose, not an extra decoration. ${HANDS}`,
+    peace: `Pose: giving a classic peace sign (V sign) with one hand raised beside ${pl2} shoulder, palm facing outward, index and middle fingers extended and the other fingers curled, with the other arm relaxed at ${pl2} side. The raised hand must not cover ${pl2} face. Keep ${pl2} head position, facial expression and natural appearance unchanged. ${HANDS}`
+  };
+  const coat = (S.design === 'sticker' ? S.sOutfit : S.outfit).coat;
+  POSES.pocket = `Pose: standing relaxed and upright with both hands tucked into the front pockets of ${coat ? 'the white lab coat' : pl2 + ' clothes'}, so the hands are hidden inside the pockets and only the wrists or a natural thumb may show. Keep ${pl2} head position, facial expression and natural appearance unchanged. Any visible fingers or thumbs must look completely normal and natural, with correct proportions and no extra, missing or fused fingers.`;
+  return POSES[S.pose || 'original'];
+}
+function topperColors(c){
+  return {M:`${c.M} (${c.m})`, S:`${c.S} (${c.s})`, P:`${c.P} (${c.p})`, D:`${c.D} (${c.d})`};
+}
+/* when the prompt was hand-edited, swap old colors for new ones inside the edited text */
+function syncColors(text, oldC, newC){
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const ch = ['M','S','P','D'].filter(r => oldC && oldC[r] !== newC[r]);
+  const pairs = [];
+  ch.forEach(r => { pairs.push([oldC[r], newC[r]], [cap(oldC[r]), cap(newC[r])]); });
+  pairs.forEach((pr, i) => { text = text.split(pr[0]).join(`\u0001${i}\u0001`); });
+  pairs.forEach((pr, i) => { text = text.split(`\u0001${i}\u0001`).join(pr[1]); });
+  return text;
+}
+function buildTopperPrompt(c, fit, pl){
+  c = {...c, ...topperColors(c)};
+  const name = fullName(), q = quoteText(), title = S.title.trim();
+  const k = KID[S.who], P = k.p, o = k.o, s = k.s;
+  const coquette = S.palette === 'pink' ? ' coquette' : '';
+  const colors = [...new Set([c.M, c.S, c.P, 'silver', c.D])];
+  const palText = colors.slice(0, -1).join(', ') + ' and ' + colors[colors.length - 1];
+  const L = [];
+  L.push(`Create an almost exact replica of the attached reference image as a premium glossy 3D medical graduation cake-topper sticker, vertical portrait composition, on a pure white background.`);
+
+  L.push(`**CRITICAL – FACIAL IDENTITY AND EXPRESSION LOCK:**\nUse the young ${k.n}'s original attached photograph as the exact facial and identity reference. ${s} ${k.be} a KID, so keep ${o} clearly a child. ${P} face must remain IDENTICAL to the original photograph.`);
+  L.push(`Do NOT redraw, regenerate, reinterpret, beautify, retouch, reshape or stylize ${o} face.`.replace(` ${o} face`, ` ${P.toLowerCase()} face`));
+  L.push([
+    `Preserve with absolute accuracy:`,
+    `- ${P} exact natural smile, including the position and visibility of ${P.toLowerCase()} teeth.`,
+    `- ${P} exact eyes, eyelids, eyebrows and gaze direction.`,
+    `- ${P} exact nose, lips, cheeks, chin and facial proportions.`,
+    `- ${P} original glasses if ${s.toLowerCase()} wear${s === 'They' ? '' : 's'} any, including their shape, position and transparency.`,
+    `- ${P} natural skin tone, facial texture and distinctive features.`,
+    `- ${P} original hairline, hair color, length, curl pattern, volume and individual recognizable characteristics.`,
+    `- ${P} original facial expression and personality.`,
+    `- ${P} child's age, youthful round face and childlike proportions. Do NOT make ${o} look older, adult or mature, and do not add makeup.`
+  ].join('\n'));
+  L.push(`**Do not make ${P.toLowerCase()} smile wider, change ${P.toLowerCase()} teeth, enlarge ${P.toLowerCase()} eyes, alter ${P.toLowerCase()} cheeks or change the direction of ${P.toLowerCase()} gaze. Do not substitute a similar-looking child.**`);
+  L.push(`The portrait must look like the actual ${k.n} in the supplied photograph, not an AI-generated interpretation of ${o}. Preserve the original face and expression even if other parts of the design need to be adjusted to accommodate the portrait.`);
+
+  L.push(`**OVERALL DESIGN:**\nA vertical die-cut sticker with a thick continuous white outline surrounding the entire artwork, a subtle grey edge shadow and a clean white background. Cute, luxurious, glossy 3D Y2K${coquette} medical-graduation aesthetic. ${palText.charAt(0).toUpperCase() + palText.slice(1)}. Puffy glossy graphics, smooth outlines, reflective highlights and layered sticker elements.`);
+
+  const wear = [];
+  if (S.outfit.coat){ wear.push(`A crisp white doctor's lab coat.`); wear.push(`A soft cream knitted sweater underneath.`); }
+  if (S.outfit.steth) wear.push(`A glossy ${c.M} stethoscope around ${P.toLowerCase()} neck.`);
+  if (S.outfit.rosette){
+    wear.push(`A beautiful ${c.M}-and-white scalloped award rosette pinned to the chest.`);
+    wear.push(`A circular white center on the rosette featuring a ${c.D} medical caduceus emblem.`);
+    wear.push(`Two long ${c.M} and white striped ribbon tails hanging from the rosette.`);
+  }
+  if (S.outfit.cap) wear.push(`A black graduation cap with a long ${c.M} tassel.`);
+  const hair = S.outfit.cap ? '' : ` with ${P.toLowerCase()} full hair visible and nothing on the head`;
+  let center = `**CENTER – ${k.n.toUpperCase()}'S PORTRAIT:**\nPlace a large realistic photographic cut-out of the young ${k.n} (a child) in the center, from approximately the waist/chest upward,${hair || ' with the full hair visible'}.`;
+  center += `\n\n` + poseParagraph(c, P.toLowerCase());
+  if (wear.length) center += `\n\nDress ${o} in:\n` + wear.map(w => '- ' + w).join('\n') + `\n\nThe clothing and accessories should look realistic and glossy, while the face remains photographic and completely faithful to the reference.`;
+  else center += `\n\nKeep ${P.toLowerCase()} own outfit from the photo.`;
+  L.push(center);
+
+  const side = (list, head) => {
+    if (!list.length) return null;
+    const items = list.map(e => (DETAIL[e.id] ? DETAIL[e.id](c) : capFirst(e.say(c))));
+    const body = items.length > 1 ? items.map((t, i) => `${i + 1}. ${t}`).join('\n') : items[0];
+    return `**${head}:**\n${list.length > 1 ? 'Arrange vertically:\n' : 'Place:\n'}${body}\n\nAdd a few small four-point sparkles in ${c.M} and silver.`;
+  };
+  const left = side(pl.L, 'LEFT-SIDE DECORATIONS'), right = side(pl.R, 'RIGHT-SIDE DECORATIONS');
+  if (left) L.push(left);
+  if (right) L.push(right);
+
+  if (title){
+    L.push(`**TEXT – DIRECTLY BELOW THE PORTRAIT:**\nPlace the exact text:\n\n"${title}"\n\nUse large, bold, italic, glossy ${c.M} bubble lettering with white highlights, a thin white inner outline and a ${c.D} extruded shadow. Keep it on one single line, centered and prominent.`);
+  }
+
+  let plate = `**BOTTOM – NAMEPLATE:**\nCreate a large horizontal ${c.P} scalloped cloud-shaped nameplate with multiple layered outlines in ${c.S}, ${c.M} and ${c.D}. Give it a glossy laminated finish and thick white outer sticker border.`;
+  if (name){
+    plate += `\n\nInside the nameplate, place the exact text:\n\n"${name}"\n\nUse elegant oversized solid ${c.D} flowing script lettering, centered, with smooth calligraphic curves.`;
+    plate += `\n\nAdd one glossy ${c.M} heart on either side of the name.`;
+  }
+  if (q){
+    const lt = fit.qLines.length === 2 ? `on two lines, line one "${fit.qLines[0]}" and line two "${fit.qLines[1]}"` : `on one line`;
+    plate += `\n\nUnderneath ${name ? 'the name' : 'the top of the nameplate'}, place the exact quote "${q}" in smaller soft solid ${c.D} italic lettering ${lt}, centered.`;
+  }
+  plate += `\n\nUnderneath ${q ? 'the quote' : (name ? 'the name' : 'the top of the nameplate')}, add a thin ${c.D} decorative flourish with a small glossy ${c.M} heart in the center.`;
+  plate += `\n\nKeep every word fully inside the cloud with a clear margin from the scalloped edge. Never let letters touch or cross the border; scale the lettering down instead of cropping it.`;
+  L.push(plate);
+
+  L.push(`**COMPOSITION:**\nKeep the portrait as the dominant central feature. ${left && right ? 'The left-side decorations balance the left; the right-side decorations balance the right.' : 'Keep the decorations balanced around the portrait.'}${title ? ` The ${title} lettering separates the portrait from the large scalloped nameplate.` : ''}\n\nMaintain the same overall proportions, arrangement, scale and visual hierarchy as the reference image.`);
+
+  const strict = [
+    `Facial identity and expression must remain unchanged.`,
+    `Do not generate a different face.`,
+    `Do not age ${o} up. ${s} must clearly look like a kid, exactly as in the photograph.`,
+    `Do not alter the original smile or teeth.`,
+    `Do not change ${P.toLowerCase()} glasses or hair.`
+  ];
+  if (S.pose === 'pocket') strict.push(`Hands stay tucked in the pockets, and any visible thumbs or wrists must look normal and natural.`);
+  else if (S.pose && S.pose !== 'original') strict.push(`Hands must look normal and natural, with exactly five fingers each.`);
+  if (!S.outfit.cap) strict.push(`Do not add a graduation cap or hat.`);
+  strict.push(`Do not add a stick or mockup.`, `Do not introduce extra text or objects.`, `All lettering must be spelled correctly and remain fully visible.`);
+  L.push(`**STRICT REQUIREMENTS:**\n` + strict.map(t => '- ' + t).join('\n'));
+
+  L.push(`High-resolution, realistic photographic portrait, glossy 3D sticker decorations, crisp clean edges, professional print-ready die-cut artwork.`);
+  const exact = [title, name, q].filter(Boolean);
+  if (exact.length) L.push(`**Exact text:**\n` + exact.map(t => '- ' + t).join('\n'));
+  return L.join('\n\n');
+}
+
+/* ---------- sticker: sizing and prompt ---------- */
+const joinList = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : (a[0] || '');
+function words2(t){ const w = t.split(/\s+/).filter(Boolean); return w.length < 2 ? [t] : [w[0], w.slice(1).join(' ')]; }
+function stickerFit(){
+  const name = S.sName.trim(), batch = S.sBatch.trim(), banner = S.sBanner.trim(), q = S.sUseQuote ? S.sQuote.trim() : '';
+  const f = {name, batchLines: batch ? words2(batch) : [], banner, qLines:[], overflow:false, nameW:0, batchW:0, bannerW:0, qW:0};
+  if (name) f.nameW = Math.round(Math.min(80, name.length * 15.6));
+  if (f.batchLines.length) f.batchW = Math.round(Math.min(52, Math.max(...f.batchLines.map(l => l.length)) * 10));
+  if (banner) f.bannerW = Math.round(Math.min(58, banner.length * 4.3));
+  if (q){
+    const MAXW = 58, PER = 2.3, MIN = 1.4;
+    let lines = [q], per = Math.min(PER, MAXW / q.length);
+    if (q.length * PER > MAXW){
+      const ws = q.split(/\s+/); let best = null;
+      for (let i = 1; i < ws.length; i++){
+        const a = ws.slice(0, i).join(' '), b = ws.slice(i).join(' '), m = Math.max(a.length, b.length);
+        if (!best || m < best.m) best = {m, lines:[a, b]};
+      }
+      if (best){ lines = best.lines; per = Math.min(PER, MAXW / best.m); }
+    }
+    if (per < MIN) f.overflow = true;
+    f.qLines = lines; f.qW = Math.round(Math.max(...lines.map(l => l.length)) * per);
+  }
+  return f;
+}
+/* ---------- sticker: detailed replica prompt ---------- */
+function buildStickerDetailed(c, f){
+  const U = t => t.trim().toUpperCase();
+  const g = {girl:{n:'girl', p:'her', o:'her'}, boy:{n:'boy', p:'his', o:'him'}, person:{n:'person', p:'their', o:'them'}}[S.who];
+  const o = S.sOutfit, x = S.sx;
+  const L = [];
+  const sec = (head, ...paras) => L.push(`**${head}:**\n${paras.filter(Boolean).join('\n\n')}`);
+  const q = f.qLines.join(' ');
+  L.push('Create an almost exact replica of the attached reference image as a vertical die-cut graduation sticker design, with a clean pure white background, a thick continuous white die-cut outline surrounding the entire artwork, and a very subtle soft grey edge shadow. Keep its layout, lettering style and decorations, and use the exact text and colors given below.');
+  L.push(`**STYLE:** Cute, glossy 3D Y2K / retro-bubbly medical graduation aesthetic. Chunky puffy bubble lettering, shiny highlights, ${c.D} extruded shadows, smooth rounded edges, layered scalloped borders and vibrant pastel colors. High-quality professional sticker illustration, with a realistic photographic portrait in the center.`);
+
+  if (f.batchLines.length){
+    const bl = f.batchLines.length === 2 ? `the exact text "${U(f.batchLines[0])}" above "${U(f.batchLines[1])}", arranged on two lines` : `the exact text "${U(f.batchLines[0])}" on one line`;
+    sec(`TOP – ${U(f.batchLines.join(' '))}`,
+      `At the upper left-to-center area, place ${bl}. Use chunky, inflated ${c.M} bubble letters with ${c.D} outlines, dark 3D extrusion and glossy highlights.${x.ring ? ` Place a large tilted oval planet orbit ring behind the lettering, in a glossy ${c.M}, lilac and ${c.S} gradient.` : ''}${x.sparkles ? ` Add several small ${c.M} four-point sparkles around the text.` : ''} Keep the entire group slightly tilted and visually balanced.`);
+  }
+
+  const head = o.cap
+    ? `Add a black graduation cap with a long ${c.M} tassel, keeping ${g.p} hair visible around it.`
+    : `Keep all ${g.p} hair fully visible. Do not add a graduation cap, hat or anything on ${g.p} head.`;
+  const dress = o.coat ? `Dress ${g.o} in a crisp white doctor's lab coat over the clothes shown in the photo.` : `Keep ${g.p} own clothes from the photo.`;
+  const extra = (o.steth ? ` Add a ${c.M} stethoscope around ${g.p} neck.` : '') + (o.rosette ? ` Pin a beautiful ${c.A} award rosette with a circular center and two long ${c.A} ribbon tails onto the chest.` : '');
+  const arch = x.arch
+    ? `Behind ${g.o}, create a large, tall, rounded scalloped rainbow arch with three thick layered bands: ${c.M}, ${c.S} and ${c.A}, separated by clean outlines. The inside of the arch should remain white with small scattered ${c.M} four-point sparkles.`
+    : `Place the portrait directly on the white background, with no rainbow arch.`;
+  sec(`CENTER – PORTRAIT${x.arch ? ' AND ARCH' : ''}`,
+    `Place a large cut-out photographic portrait of the ${g.n} from the attached reference photo in the center. Preserve ${g.p} exact facial features, any glasses, hair, skin tone and natural expression. ${head}`,
+    dress + extra, poseParagraph(c, g.p), arch);
+
+  const bt = x.badge ? U(S.sBadgeTop) : '', bb = x.badge ? U(S.sBadgeBottom) : '';
+  if (x.badge){
+    const parts = [];
+    if (bt) parts.push(`the exact text "${bt}" following the upper curve`);
+    if (bb) parts.push(`${bt ? '' : 'the exact text '}"${bb}" following the lower curve`);
+    const txt = parts.length ? ` Add ${parts.join(' and ')}, in bold rounded ${c.D} uppercase letters. Keep all text correctly spelled and completely inside the badge.` : '';
+    sec('RIGHT-SIDE BADGE', `Add a large round scalloped badge overlapping the right side of the portrait${x.arch ? ' and rainbow frame' : ''}. Use ${c.S} filling, layered ${c.M} scalloped borders and a thick white outer outline. Inside, place a cute glossy ${c.M} stethoscope illustration with two small ${c.A} stars.${txt}`);
+  }
+  if (x.star) sec('LOWER LEFT DECORATION', `Add one large glossy 3D ${c.A} five-point star with white highlights and a ${c.D} outline, overlapping the lower-left corner of the ${x.arch ? 'rainbow frame' : 'portrait'}.`);
+  if (f.name) sec('BOTTOM – NAME', `Across the lower part of the sticker, place the exact name "${U(f.name)}" in enormous chunky, inflated ${c.M} bubble letters. Use glossy white highlights, thick ${c.D} outlines and dramatic dark ${c.D} 3D extrusion. Keep the name on one line, centered and approximately ${f.nameW}% of the sticker width.`);
+  if (f.banner) sec(`${U(f.banner)} RIBBON`, `${f.name ? `Directly underneath and slightly overlapping the bottom of "${U(f.name)}", add` : 'Across the lower part of the sticker, add'} a wide curved ${c.A} ribbon banner with curled swallowtail ends, glossy highlights and a thin ${c.D} outline. Inside, write "${U(f.banner)}" in bold uppercase ${c.D} retro lettering (about ${f.bannerW}% of the sticker width). Add one small ${c.M} sparkle on each side of the wording.`);
+  if (q){
+    const lt = f.qLines.length === 2 ? `on two lines, line one "${f.qLines[0]}" and line two "${f.qLines[1]}"` : 'on one line';
+    sec('QUOTE UNDER THE RIBBON', `Directly underneath ${f.banner ? 'the ribbon' : 'the name'}, add a small scalloped ${c.S} label with a thin ${c.M} outline, tucked beneath it as part of the design. Inside it, write the exact quote "${q}" in ${c.D} italic lettering, centered, ${lt} (about ${f.qW}% of the sticker width and clearly smaller than the ribbon text). The label and its text must sit completely inside the thick white die-cut outline, and the white outline must follow the bottom of the label.`);
+  }
+
+  const hier = [];
+  if (f.batchLines.length) hier.push(`${U(f.batchLines.join(' '))} at the top`);
+  hier.push(`${x.arch ? 'rainbow arch and ' : ''}${g.n} in the center`);
+  if (x.badge) hier.push('round medical badge on the right');
+  if (x.star) hier.push(`${c.A} star on the lower left`);
+  if (f.name) hier.push(`${U(f.name)} in huge lettering near the bottom`);
+  if (f.banner) hier.push(`the ${U(f.banner)} ribbon ${q ? 'below it' : 'at the very bottom'}`);
+  if (q) hier.push('the quote label at the very bottom');
+  sec('COMPOSITION AND COLORS',
+    `Maintain the exact visual hierarchy and overall arrangement: ${joinList(hier)}.`,
+    `Strict color palette: ${joinList([...new Set([c.M, c.S, c.A, 'white', c.D])])}, with small touches of lilac and mint green.`);
+  L.push(`**IMPORTANT:** Keep the composition compact, vertically balanced and symmetrical overall. Preserve the ${x.arch ? 'layered scalloped frame, ' : ''}oversized glossy typography, thick white sticker border and playful 3D finish. Do not add extra decorations, flowers, daisies, books, balloons, additional characters, a stick or a mockup. No extra text, no watermark. Every word must stay fully inside its ribbon, label, badge or letter shape with a clear margin; scale the lettering down instead of cropping it. High resolution, crisp edges, print-ready quality.`);
+
+  const ex = [...f.batchLines.map(U), bt, bb, f.name && U(f.name), f.banner && U(f.banner), q].filter(Boolean);
+  L.push(`**Exact text (spell correctly):**\n${ex.map(t => `- ${t}`).join('\n')}`);
+  return L.join('\n\n');
+}
+
+/* ---------- controls ---------- */
+const SX = [{id:'ring', label:'Planet ring'}, {id:'arch', label:'Rainbow arch'}, {id:'badge', label:'Stethoscope badge'}, {id:'star', label:'Star'}, {id:'sparkles', label:'Sparkles'}];
+const outfitState = () => S.design === 'sticker' ? S.sOutfit : S.outfit;
+function buildControls(){
+  document.querySelector('.designs').addEventListener('click', e => {
+    const b = e.target.closest('.dcard'); if (!b) return;
+    S.design = b.dataset.d; render();
+  });
+  const sw = $('#swatches');
+  sw.innerHTML = Object.entries(PALETTES).map(([k, p]) => `<button type="button" class="sw" data-p="${k}" aria-pressed="false"><i><b style="background:${p.main}"></b><b style="background:${p.deep}"></b><b style="background:${p.accent}"></b></i>${p.label}</button>`).join('');
+  sw.addEventListener('click', e => {
+    const b = e.target.closest('.sw'); if (!b) return;
+    const p = PALETTES[b.dataset.p]; S.palette = b.dataset.p; S.main = p.main; S.deep = p.deep; S.plate = p.plate; S.accent = p.accent;
+    fillColors(); render();
+  });
+  $('#outfit').innerHTML = OUTFIT.map(o => `<button type="button" class="chip txt" data-o="${o.id}" aria-pressed="false">${o.label}</button>`).join('');
+  $('#outfit').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    const st = outfitState(); st[b.dataset.o] = !st[b.dataset.o]; render();
+  });
+  $('#sx').innerHTML = SX.map(s => `<button type="button" class="chip txt" data-x="${s.id}" aria-pressed="false">${s.label}</button>`).join('');
+  $('#sx').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    S.sx[b.dataset.x] = !S.sx[b.dataset.x]; render();
+  });
+  $('#chips').innerHTML = ELS.map(el => `<button type="button" class="chip" data-e="${el.id}" aria-pressed="false"><svg viewBox="0 0 100 100" aria-hidden="true"></svg>${el.label}</button>`).join('');
+  $('#chips').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b || b.disabled) return;
+    const id = b.dataset.e, i = S.els.indexOf(id);
+    if (i >= 0) S.els.splice(i, 1); else if (S.els.length < MAX_EL) S.els.push(id);
+    render();
+  });
+  const bind = (id, key) => $('#' + id).addEventListener('input', e => { S[key] = e.target.value; render(); });
+  ['quote','who','pose','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => bind(k, k));
+  /* Option 2: name and title also update any hand-edited text */
+  const bindTracked = (id, key, trackKey) => $('#' + id).addEventListener('input', e => {
+    const v = e.target.value, nv = v.trim();
+    if (S.topperEdit != null && nv && S[trackKey]){
+      S.topperEdit = S.topperEdit.split(S[trackKey]).join(nv);
+      S[trackKey] = nv;
+    }
+    S[key] = v; render();
+  });
+  bindTracked('name', 'name', 'trackName'); bindTracked('title', 'title', 'trackTitle');
+  $('#out').addEventListener('input', e => {
+    if (S.design !== 'topper') return;
+    S.topperEdit = e.target.value;
+    $('#restore').hidden = false;
+    $('#status').className = 'status';
+    $('#status').innerHTML = EDITED_MSG;
+    const ta = e.target; ta.style.height = 'auto'; ta.style.height = Math.max(260, ta.scrollHeight + 4) + 'px';
+  });
+  $('#restore').addEventListener('click', () => { S.topperEdit = null; render(); });
+  const col = (id, key) => $('#' + id).addEventListener('input', e => { S[key] = e.target.value; S.palette = 'custom'; render(); });
+  col('cMain', 'main'); col('cDeep', 'deep'); col('cPlate', 'plate'); col('cAccent', 'accent');
+  $('#useQuote').addEventListener('click', () => { S.useQuote = !S.useQuote; render(); });
+  $('#sUseQuote').addEventListener('click', () => { S.sUseQuote = !S.sUseQuote; render(); });
+  $('#reset').addEventListener('click', () => { S = {...DEFAULTS(), design:S.design}; fillInputs(); render(); });
+  $('#copy').addEventListener('click', async () => {
+    const ta = $('#out'), btn = $('#copy');
+    const flash = t => { btn.textContent = t; setTimeout(() => btn.textContent = 'Copy prompt', 1800); };
+    try { await navigator.clipboard.writeText(ta.value); flash('Copied'); }
+    catch (err) { ta.focus(); ta.select(); flash('Selected. Press Ctrl+C'); }
+  });
+}
+function fillColors(){ $('#cMain').value = S.main; $('#cDeep').value = S.deep; $('#cPlate').value = S.plate; $('#cAccent').value = S.accent; }
+function fillInputs(){
+  ['name','title','quote','who','pose','sName','sBatch','sBanner','sQuote','sBadgeTop','sBadgeBottom'].forEach(k => { $('#' + k).value = S[k]; });
+  fillColors();
+}
+function syncControls(c){
+  document.querySelectorAll('.dcard').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.d === S.design)));
+  document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.dataset.for !== S.design; });
+  const vis = [...document.querySelectorAll('.controls .sec')].filter(e => !e.hidden);
+  vis.forEach((e, i) => { e.classList.toggle('lead', i === 0); e.classList.toggle('tail', i === vis.length - 1); });
+  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.p === S.palette)));
+  const os = outfitState();
+  document.querySelectorAll('#outfit .chip').forEach(b => b.setAttribute('aria-pressed', String(!!os[b.dataset.o])));
+  document.querySelectorAll('#sx .chip').forEach(b => b.setAttribute('aria-pressed', String(!!S.sx[b.dataset.x])));
+  $('#sBadgeTop').disabled = !S.sx.badge; $('#sBadgeBottom').disabled = !S.sx.badge;
+  $('#useQuote').setAttribute('aria-pressed', String(S.useQuote));
+  $('#useQuote').textContent = S.useQuote ? 'Quote on' : 'Quote off';
+  $('#quote').disabled = !S.useQuote;
+  $('#qcount').textContent = S.useQuote ? `${S.quote.length}/70 characters. Long quotes split over two lines and shrink to fit.` : 'The nameplate will show the name only.';
+  $('#sUseQuote').setAttribute('aria-pressed', String(S.sUseQuote));
+  $('#sUseQuote').textContent = S.sUseQuote ? 'Quote on' : 'Quote off';
+  $('#sQuote').disabled = !S.sUseQuote;
+  $('#out').readOnly = S.design === 'sticker';
+  $('#restore').hidden = !(S.design === 'topper' && S.topperEdit != null);
+  $('#pnote').textContent = (S.design === 'sticker') ? 'Attach two images when you paste it: the example sticker design you want to copy, and the photo of the person. If any letters come out wrong, generate again and keep the "Exact text" list.' : 'Attach two images when you paste it: the example topper design you want to copy, and the photo of the person. You can edit the prompt above before copying. If any letters come out wrong, generate again and keep the "Exact text" list.';
+  $('#sqcount').textContent = S.sUseQuote ? `${S.sQuote.length}/60 characters. It sits on a small label under the ribbon and splits over two lines if needed.` : 'The sticker will end at the ribbon.';
+  const full = S.els.length >= MAX_EL;
+  document.querySelectorAll('#chips .chip').forEach(b => {
+    const on = S.els.includes(b.dataset.e);
+    b.setAttribute('aria-pressed', String(on));
+    b.disabled = full && !on;
+    b.querySelector('svg').innerHTML = GLYPHS[b.dataset.e](c);
+  });
+  $('#elCount').textContent = `${S.els.length} of ${MAX_EL} icons. They share the left and right sides of the photo.`;
+}
+
+buildControls();
+fillInputs();
+render();
+if (document.fonts && document.fonts.load){
+  Promise.all([document.fonts.load('700 40px "Dancing Script"'), document.fonts.load('italic 800 30px Nunito'), document.fonts.load('italic 700 20px Nunito')])
+    .then(render).catch(() => {});
+  document.fonts.ready.then(render).catch(() => {});
+}
+</script>
+
+</body>
+</html>
