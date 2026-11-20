@@ -466,7 +466,7 @@ function buildTopperPrompt(c, fit, pl){
   L.push(`Create an almost exact replica of the attached reference image as a premium glossy 3D medical graduation cake-topper sticker, vertical portrait composition, on a pure white background.`);
 
   L.push(`**CRITICAL – FACIAL IDENTITY AND EXPRESSION LOCK:**\nUse the young ${k.n}'s original attached photograph as the exact facial and identity reference. ${s} ${k.be} a KID, so keep ${o} clearly a child. ${P} face must remain IDENTICAL to the original photograph.`);
-  L.push(`Do NOT redraw, regenerate, reinterpret, beautify, retouch, reshape or stylize ${o} face.`.replace(` ${o} face`, ` ${P.toLowerCase()} face`));
+  L.push(`Do NOT redraw, regenerate, reinterpret, beautify, reshape or stylize ${o} face. The only edits allowed are the lighting and image-quality corrections listed below.`.replace(` ${o} face`, ` ${P.toLowerCase()} face`));
   L.push([
     `Preserve with absolute accuracy:`,
     `- ${P} exact natural smile, including the position and visibility of ${P.toLowerCase()} teeth.`,
@@ -479,6 +479,7 @@ function buildTopperPrompt(c, fit, pl){
     `- ${P} child's age, youthful round face and childlike proportions. Do NOT make ${o} look older, adult or mature, and do not add makeup.`
   ].join('\n'));
   L.push(`**Do not make ${P.toLowerCase()} smile wider, change ${P.toLowerCase()} teeth, enlarge ${P.toLowerCase()} eyes, alter ${P.toLowerCase()} cheeks or change the direction of ${P.toLowerCase()} gaze. Do not substitute a similar-looking child.**`);
+  L.push(`**ALLOWED PHOTO CORRECTIONS (lighting and image quality only):**\nYou may fix the lighting and quality of the photograph so it blends cleanly into the sticker: balance the exposure and brightness, soften harsh or uneven shadows, correct the white balance and any color cast, improve contrast and sharpness, and reduce noise or blur. These corrections must NEVER change ${P.toLowerCase()} face shape, features, expression, smile, teeth, eyes, gaze, skin identity, glasses or hair. No skin smoothing, slimming, whitening or reshaping.`);
   L.push(`The portrait must look like the actual ${k.n} in the supplied photograph, not an AI-generated interpretation of ${o}. Preserve the original face and expression even if other parts of the design need to be adjusted to accommodate the portrait.`);
 
   L.push(`**OVERALL DESIGN:**\nA vertical die-cut sticker with a thick continuous white outline surrounding the entire artwork, a subtle grey edge shadow and a clean white background. Cute, luxurious, glossy 3D Y2K${coquette} medical-graduation aesthetic. ${palText.charAt(0).toUpperCase() + palText.slice(1)}. Puffy glossy graphics, smooth outlines, reflective highlights and layered sticker elements.`);
